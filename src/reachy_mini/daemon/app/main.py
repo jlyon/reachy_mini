@@ -10,6 +10,7 @@ managing the robot's state.
 import argparse
 import asyncio
 import logging
+import os
 import types
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -79,6 +80,8 @@ class Args:
     goto_sleep_on_stop: bool = True
     preload_datasets: bool = False
     dataset_update_interval_hours: float = 24.0  # 0 to disable periodic updates
+
+    autostart_app: str | None = None
 
     robot_name: str = "reachy_mini"
 
@@ -155,6 +158,16 @@ def create_app(args: Args, health_check_event: asyncio.Event | None = None) -> F
                     localhost_only=localhost_only,
                     hardware_config_filepath=args.hardware_config_filepath,
                 )
+
+                if args.autostart_app:
+                    await asyncio.sleep(1.0)
+                    try:
+                        await app.state.app_manager.start_app(args.autostart_app)
+                        logging.info(f"Autostart app '{args.autostart_app}' started")
+                    except Exception as e:
+                        logging.exception(
+                            f"Failed to start autostart app '{args.autostart_app}': {e}"
+                        )
 
             yield
         finally:
@@ -519,6 +532,14 @@ def main() -> None:
         default=default_args.dataset_update_interval_hours,
         dest="dataset_update_interval_hours",
         help="Interval in hours for background dataset update checks (default: 24.0, 0 to disable).",
+    )
+    parser.add_argument(
+        "--autostart-app",
+        type=str,
+        default=os.environ.get("REACHY_MINI_AUTOSTART_APP", default_args.autostart_app),
+        dest="autostart_app",
+        help="App to start automatically after daemon wake-up (e.g. reachy_mini_conversation_app). "
+        "Also set via REACHY_MINI_AUTOSTART_APP env var.",
     )
     # Zenoh server options
     parser.add_argument(
