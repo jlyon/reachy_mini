@@ -47,7 +47,9 @@ async def start_daemon(
 
 @router.post("/stop")
 async def stop_daemon(
-    goto_sleep: bool, daemon: Daemon = Depends(get_daemon)
+    request: Request,
+    goto_sleep: bool,
+    daemon: Daemon = Depends(get_daemon),
 ) -> dict[str, str]:
     """Stop the daemon, optionally putting the robot to sleep."""
     if busy_lock.locked():
@@ -55,6 +57,11 @@ async def stop_daemon(
 
     async def stop(logger: logging.Logger) -> None:
         with busy_lock:
+            if goto_sleep:
+                app_manager = request.app.state.app_manager
+                if app_manager.is_app_running():
+                    logger.info("Stopping current app before putting robot to sleep")
+                    await app_manager.close()
             await daemon.stop(goto_sleep_on_stop=goto_sleep)
 
     job_id = bg_job_register.run_command("daemon-stop", stop)
