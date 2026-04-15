@@ -4,10 +4,16 @@ To generate the documentation, you first have to build it. Several packages are 
 you can install them with the following command, at the root of the code repository:
 
 ```bash
+pip install -e ".[all]"
 pip install "hf-doc-builder @ git+https://github.com/huggingface/doc-builder.git@main"
 ```
 
-You will also need `nodejs`. Please refer to their [installation page](https://nodejs.org/en/download)
+You will also need:
+- **GStreamer** — See the [installation guide](source/SDK/gstreamer-installation.md)
+- **Node.js** — See the [installation page](https://nodejs.org/en/download)
+
+> [!WARNING]
+> The documentation cannot currently be generated on Windows due to an unsupported dependency. Please use macOS or Linux.
 
 ---
 
@@ -24,7 +30,7 @@ Once you have setup the `doc-builder` and additional packages, you can generate 
 typing the following command:
 
 ```bash
-doc-builder build reachy_mini docs/source/ --build_dir ~/tmp/test-build
+doc-builder build reachy_mini docs/source/ --build_dir ~/tmp/test-build --html
 ```
 
 You can adapt the `--build_dir` to set any temporary folder that you prefer. This command will create it and generate
@@ -48,6 +54,18 @@ The docs will be viewable at [http://localhost:5173](http://localhost:5173). You
 The `preview` command only works with existing doc files. When you add a completely new file, you need to update `_toctree.yml` & restart `preview` command (`ctrl-c` to stop it & call `doc-builder preview ...` again).
 
 ---
+
+## Regenerating the REST API reference
+
+The file `docs/source/API/openapi.json` is generated from the FastAPI app. After
+changing any route, model, or docstring in the daemon, regenerate it with:
+
+```bash
+uv run python scripts/generate_openapi.py
+```
+
+Commit the updated JSON alongside your code changes. CI will fail if the
+committed spec drifts from the code.
 
 ## Adding a new element to the navigation bar
 
